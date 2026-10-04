@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mas eRTe · Dukuh Tulusari RT 11</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EEF1E7; --surface:#FFFFFF; --ink:#20261D; --sub:#5B6353;
+  --green:#1F4D3A; --gold:#B98A2E;
+  --line:#DCE1D2;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  box-sizing:border-box;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --bg:#121A15; --surface:#1B241D; --ink:#EAEDE4; --sub:#9BA694; --green:#4C8A6B; --gold:#D6AE5C; --line:#2B362B; }
+}
+*{box-sizing:border-box;}
+body{margin:0; min-height:100dvh; background:var(--bg); color:var(--ink); font-family:'Inter',system-ui,sans-serif; display:flex; justify-content:center; padding:24px 12px;}
+.wrap{width:100%; max-width:420px;}
+.hd{text-align:center; padding:28px 10px 8px;}
+.hd .brand{font-family:'Fraunces',serif; font-weight:700; font-size:24px; color:var(--green);}
+.hd .place{font-size:12.5px; color:var(--sub); margin-top:4px;}
+.card{display:flex; align-items:center; gap:14px; background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:16px; margin-bottom:12px; text-decoration:none; color:var(--ink); box-shadow:0 6px 16px rgba(20,30,20,.05);}
+.card .ic{font-size:26px; width:44px; text-align:center; flex-shrink:0;}
+.card .t{font-weight:700; font-size:15px;}
+.card .d{font-size:12.5px; color:var(--sub); margin-top:2px; line-height:1.45;}
+.card .chev{margin-left:auto; color:var(--sub); font-size:18px; flex-shrink:0;}
+.sec{font-size:11.5px; font-weight:700; color:var(--gold); margin:20px 2px 8px; letter-spacing:.3px;}
+.ft{text-align:center; font-size:11.5px; color:var(--sub); margin-top:16px; padding-bottom:10px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hd">
+    <div class="brand">Mas eRTe</div>
+    <div class="place">Dukuh Tulusari · RT 11, Karangwaru, Plupuh</div>
+  </div>
+
+  <div class="sec">APLIKASI</div>
+  <a class="card" href="app.html">
+    <span class="ic">🏠</span>
+    <span>
+      <div class="t">Mas eRTe Mobile</div>
+      <div class="d">Untuk Warga & Pengurus RT — data warga, kas, iuran, inventaris, statistik.</div>
+    </span>
+    <span class="chev">›</span>
+  </a>
+  <a class="card" href="jimpitan.html">
+    <span class="ic">💰</span>
+    <span>
+      <div class="t">Jimpitan Squad</div>
+      <div class="d">Untuk Karang Taruna — ambil & posting setoran jimpitan harian.</div>
+    </span>
+    <span class="chev">›</span>
+  </a>
+  <a class="card" href="Laskar_Sambang_RT.html">
+    <span class="ic">🚧</span>
+    <span>
+      <div class="t">Laskar Sambang RT</div>
+      <div class="d">Untuk Petugas Survei — kondisi rumah, desil KK, infrastruktur.</div>
+    </span>
+    <span class="chev">›</span>
+  </a>
+
+  <div class="ft">Pilih sesuai peran Anda. Setiap aplikasi tetap minta login sendiri.</div>
+</div>
+</body>
+</html>
