@@ -151,7 +151,7 @@ const ROLE_LABEL = { ketua: "Ketua RT", sekretaris: "Sekretaris RT", surveyor: "
 
 /* ====================== STATE ====================== */
 let currentTab = "ringkasan";
-let cache = { progress: null, kondisiRumah: [], infra: [], infraRingkasan: null, wargaKK: [] };
+let cache = { progress: null, kondisiRumah: [], infra: [], infraRingkasan: null, wargaKK: [], ekonomi: [] };
 let formError = "";
 let formMsg = "";
 let geoState = null;
@@ -167,6 +167,23 @@ const INFRA_STATUS = ["Belum diusulkan", "Diusulkan", "Dikerjakan", "Selesai"];
 const INFRA_PERMUKAAN = ["Aspal", "Cor beton", "Paving", "Makadam", "Tanah"];
 const KESIMPULAN_LABEL = { layak_huni: "Layak huni", perlu_perbaikan: "Perlu perbaikan", rtlh: "Indikasi RTLH", belum_dinilai: "Belum dinilai" };
 const KESIMPULAN_BADGE = { layak_huni: "ok", perlu_perbaikan: "wait", rtlh: "due", belum_dinilai: "" };
+
+/* ====================== SURVEI EKONOMI KK (bukti pendukung Usul/Sanggah desil) ====================== */
+const EKONOMI_FIELD = [
+  ["luas_lantai", "Luas lantai rumah", [["cukup", "Cukup (≥8m²/orang)"], ["sempit", "Sempit (<8m²/orang)"]]],
+  ["penerangan", "Sumber penerangan", [["listrik", "Listrik"], ["bukan_listrik", "Bukan listrik"]]],
+  ["air_minum", "Sumber air minum", [["layak", "Layak (ledeng/sumur terlindung)"], ["tidak_layak", "Tidak layak"]]],
+  ["bahan_bakar", "Bahan bakar memasak", [["bersih", "Gas/listrik"], ["kayu_arang_minyak", "Kayu bakar/arang/minyak tanah"]]],
+  ["frekuensi_makan", "Frekuensi makan", [["cukup", "3x sehari atau lebih"], ["terbatas", "Hanya 1-2x sehari"]]],
+  ["konsumsi_lauk", "Konsumsi daging/ayam/susu", [["sering", "≥1x seminggu"], ["jarang", "Jarang/tidak pernah"]]],
+  ["beli_pakaian", "Beli pakaian baru", [["cukup", "Lebih dari 1 stel/tahun"], ["terbatas", "≤1 stel/tahun"]]],
+  ["akses_berobat", "Kemampuan berobat ke faskes", [["mampu", "Mampu"], ["tidak_mampu", "Tidak mampu"]]],
+  ["tabungan_aset", "Tabungan/aset mudah dijual ≥Rp500rb", [["ada", "Ada"], ["tidak_ada", "Tidak ada"]]]
+];
+const PENDIDIKAN_OPSI = [["tidak_sekolah", "Tidak sekolah"], ["tidak_tamat_sd", "Tidak tamat SD"], ["sd", "SD"], ["smp", "SMP"], ["sma", "SMA"], ["diploma_sarjana", "Diploma/Sarjana"]];
+const PENGHASILAN_OPSI = [["di_bawah_600rb", "Di bawah Rp600rb/bulan"], ["600rb_sampai_1jt", "Rp600rb – Rp1jt/bulan"], ["di_atas_1jt", "Di atas Rp1jt/bulan"]];
+const STATUS_PENGAJUAN_OPSI = [["belum_diajukan", "Belum diajukan"], ["diajukan", "Sudah diajukan ke Desa"], ["disetujui", "Disetujui"], ["ditolak", "Ditolak"]];
+const STATUS_PENGAJUAN_BADGE = { belum_diajukan: "", diajukan: "wait", disetujui: "ok", ditolak: "due" };
 
 function render() {
   const el = document.getElementById("phone");
@@ -204,7 +221,7 @@ async function doLogin() {
 
 /* ====================== SHELL ====================== */
 function appShell() {
-  const tabs = [["ringkasan", "📊", "Ringkasan"], ["rumah", "🏚️", "Rumah Tangga"], ["infra", "🚧", "Infrastruktur"]];
+  const tabs = [["ringkasan", "📊", "Ringkasan"], ["rumah", "🏚️", "Rumah Tangga"], ["ekonomi", "📋", "Ekonomi"], ["infra", "🚧", "Infrastruktur"]];
   return `
     <header>
       <div class="brand">Laskar Sambang RT</div>
@@ -228,6 +245,7 @@ async function loadAndShow(tab) {
   try {
     if (tab === "ringkasan") { await refreshProgress(); setScreen(screens.ringkasan()); }
     else if (tab === "rumah") { await refreshKondisiRumah(); setScreen(screens.rumah()); }
+    else if (tab === "ekonomi") { await refreshEkonomi(); setScreen(screens.ekonomi()); }
     else if (tab === "infra") { await refreshInfra(); setScreen(screens.infra()); }
     attachEvents();
   } catch (e) {
@@ -237,6 +255,7 @@ async function loadAndShow(tab) {
 async function refreshProgress() { const r = await apiGet("getSurveyProgress"); if (!r.ok) throw new Error(r.error); cache.progress = r; }
 async function refreshKondisiRumah() { const r = await apiGet("getKondisiRumah"); if (!r.ok) throw new Error(r.error); cache.kondisiRumah = r.rumah; }
 async function refreshInfra() { const r = await apiGet("getInfrastruktur"); if (!r.ok) throw new Error(r.error); cache.infra = r.infrastruktur; cache.infraRingkasan = r.ringkasan; }
+async function refreshEkonomi() { const r = await apiGet("getSurveiEkonomi"); if (!r.ok) throw new Error(r.error); cache.ekonomi = r.ekonomi; }
 
 /* ====================== RINGKASAN ====================== */
 const screens = {};
@@ -245,14 +264,17 @@ screens.ringkasan = () => {
   const ru = p.rumah || { total: 0, sudah: 0, belum: 0, daftar_belum: [] };
   const kk = p.kk || { total: 0, sudah_desil: 0, belum_desil: 0, daftar_belum: [] };
   const infra = p.infrastruktur || { jumlah_entri: 0, ringkasan: { jumlah_titik: 0 } };
+  const ek = p.ekonomi || { total: 0, sudah: 0, belum: 0, daftar_belum: [], sedang_diajukan: [] };
   return `
     <div class="section-tag">PROGRES SURVEI</div>
     <h2 class="title">Ringkasan</h2>
     <div class="stat-grid">
       <div class="stat"><div class="n">${ru.sudah}/${ru.total}</div><div class="l">Rumah sudah dinilai</div></div>
       <div class="stat"><div class="n">${kk.sudah_desil}/${kk.total}</div><div class="l">KK sudah ada desil</div></div>
+      <div class="stat"><div class="n">${ek.sudah}/${ek.total}</div><div class="l">KK sudah survei ekonomi</div></div>
       <div class="stat"><div class="n">${infra.jumlah_entri}</div><div class="l">Entri infrastruktur</div></div>
       <div class="stat"><div class="n">${infra.ringkasan.jumlah_titik || 0}</div><div class="l">Titik perlu perbaikan</div></div>
+      <div class="stat"><div class="n">${ek.sedang_diajukan.length}</div><div class="l">Sedang diajukan ke Desa</div></div>
     </div>
     <h3 class="sub-title">Rumah belum dinilai (${ru.belum})</h3>
     <div class="card" style="padding:4px 16px">
@@ -267,6 +289,11 @@ screens.ringkasan = () => {
       ${kk.daftar_belum.length ? kk.daftar_belum.slice(0, 8).map(k => `
         <div class="item"><div class="item-title">${esc(k.kepala)}</div><div class="item-sub">No. KK ${esc(k.no_kk)}</div></div>`).join("") : '<div class="empty">Semua KK sudah ada desil 🎉</div>'}
       ${kk.daftar_belum.length > 8 ? `<div class="item-sub" style="padding:8px 4px">+ ${kk.daftar_belum.length - 8} KK lain — isi lewat tab Rumah Tangga (buka rumahnya, desil diisi di situ)</div>` : ""}
+    </div>
+    <h3 class="sub-title">Sedang diajukan ke Desa (${ek.sedang_diajukan.length})</h3>
+    <div class="card" style="padding:4px 16px">
+      ${ek.sedang_diajukan.length ? ek.sedang_diajukan.map(k => `
+        <div class="item"><div class="item-title">${esc(k.kepala)}</div><div class="item-sub">No. KK ${esc(k.no_kk)} · diajukan ${fmtTgl(k.tanggal_pengajuan)}</div></div>`).join("") : '<div class="empty">Tidak ada pengajuan yang sedang berjalan.</div>'}
     </div>`;
 };
 
@@ -377,6 +404,92 @@ async function submitKondisiRumah(id) {
   geoState = null;
   await refreshKondisiRumah(); await refreshProgress();
   setScreen(detailRumahScreen(id)); attachEvents();
+}
+
+/* ====================== EKONOMI: daftar + detail ====================== */
+let ekonomiFilter = "";
+screens.ekonomi = () => {
+  const list = (cache.ekonomi || []).filter(k => !ekonomiFilter || k.kepala.toLowerCase().indexOf(ekonomiFilter.toLowerCase()) > -1);
+  return `
+    <div class="section-tag">BUKTI PENDUKUNG USUL/SANGGAH DESIL</div>
+    <h2 class="title">Survei Ekonomi KK</h2>
+    <div class="item-sub" style="margin:-8px 0 14px">Melengkapi Kondisi Rumah dengan indikator ekonomi &amp; konsumsi per KK, dipakai sebagai bukti saat mengajukan penyesuaian desil ke Desa.</div>
+    <div class="field"><input id="fCariEkonomi" placeholder="🔍 Cari nama kepala keluarga…" value="${esc(ekonomiFilter)}"></div>
+    <div class="card" style="padding:4px 16px">
+      ${list.length ? list.map(k => `
+        <button class="list-link" data-buka-ekonomi="${esc(k.no_kk)}">
+          <span><span class="name">${esc(k.kepala)}</span><div class="desc">No. KK ${esc(k.no_kk)} · ${k.terisi ? k.jumlah_indikasi + "/" + k.total_indikator + " indikasi miskin" : "belum disurvei"}</div></span>
+          <span class="badge ${STATUS_PENGAJUAN_BADGE[k.status_pengajuan] || ''}">${esc((STATUS_PENGAJUAN_OPSI.find(o => o[0] === k.status_pengajuan) || [, k.status_pengajuan])[1])}</span>
+        </button>`).join("") : '<div class="empty">Tidak ada KK yang cocok.</div>'}
+    </div>`;
+};
+function bindEkonomiFilter() {
+  const input = document.getElementById("fCariEkonomi");
+  if (input) input.addEventListener("input", () => { ekonomiFilter = input.value; setScreen(screens.ekonomi()); attachEvents(); });
+}
+function detailEkonomiScreen(no_kk) {
+  const k = (cache.ekonomi || []).find(x => String(x.no_kk) === String(no_kk));
+  if (!k) return '<div class="empty">KK tidak ditemukan.</div>';
+  const segField = (key, label, opsi) => `
+    <div class="field"><label>${esc(label)}</label>
+      <div class="seg" data-field="${key}">
+        ${opsi.map(([v, l]) => `<button type="button" data-val="${v}" class="${k[key] === v ? 'on' + (EKONOMI_SISI_MISKIN_JS(key) === v ? ' bad' : '') : ''}">${esc(l)}</button>`).join("")}
+      </div></div>`;
+  return `
+    <button class="back" data-back-tab="ekonomi">‹ Kembali</button>
+    ${formError ? `<div class="err">${esc(formError)}</div>` : ""}
+    ${formMsg ? `<div class="msg-ok">${esc(formMsg)}</div>` : ""}
+    <h2 class="title">${esc(k.kepala)}</h2>
+    <div class="item-sub" style="margin:-10px 0 14px">No. KK ${esc(k.no_kk)}${k.tanggal_survei ? " · terakhir disurvei " + fmtTgl(k.tanggal_survei) + (k.dinilai_oleh ? " oleh " + esc(k.dinilai_oleh) : "") : " · belum pernah disurvei"}</div>
+    ${EKONOMI_FIELD.map(([key, label, opsi]) => segField(key, label, opsi)).join("")}
+    <div class="field"><label>Pendidikan tertinggi kepala keluarga</label>
+      <div class="seg" data-field="pendidikan_kepala">
+        ${PENDIDIKAN_OPSI.map(([v, l]) => `<button type="button" data-val="${v}" class="${k.pendidikan_kepala === v ? 'on' + (['tidak_sekolah','tidak_tamat_sd','sd'].indexOf(v) > -1 ? ' bad' : '') : ''}">${esc(l)}</button>`).join("")}
+      </div></div>
+    <div class="field"><label>Penghasilan kepala keluarga</label>
+      <div class="seg" data-field="penghasilan_kepala">
+        ${PENGHASILAN_OPSI.map(([v, l]) => `<button type="button" data-val="${v}" class="${k.penghasilan_kepala === v ? 'on' + (v === 'di_bawah_600rb' ? ' bad' : '') : ''}">${esc(l)}</button>`).join("")}
+      </div></div>
+    <div class="field"><label>Catatan <span class="opt">(opsional)</span></label><textarea id="fCatatanEkonomi" rows="2">${esc(k.catatan || '')}</textarea></div>
+    <h3 class="sub-title">Status pengajuan ke Desa</h3>
+    <div class="field">
+      <div class="seg" data-field="status_pengajuan">
+        ${STATUS_PENGAJUAN_OPSI.map(([v, l]) => `<button type="button" data-val="${v}" class="${k.status_pengajuan === v ? 'on' : ''}">${esc(l)}</button>`).join("")}
+      </div>
+      ${k.tanggal_pengajuan ? `<div class="item-sub" style="margin-top:4px">Diajukan ${fmtTgl(k.tanggal_pengajuan)}</div>` : ""}
+    </div>
+    <button class="btn block" id="btnSimpanEkonomi" data-no-kk="${esc(k.no_kk)}">Simpan Survei Ekonomi</button>`;
+}
+function EKONOMI_SISI_MISKIN_JS(key) {
+  const m = { luas_lantai: "sempit", penerangan: "bukan_listrik", air_minum: "tidak_layak", bahan_bakar: "kayu_arang_minyak",
+    frekuensi_makan: "terbatas", konsumsi_lauk: "jarang", beli_pakaian: "terbatas", akses_berobat: "tidak_mampu", tabungan_aset: "tidak_ada" };
+  return m[key] || "";
+}
+function bindDetailEkonomi() {
+  document.querySelectorAll('[data-field]').forEach(group => {
+    group.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => {
+      group.querySelectorAll('button').forEach(b => b.classList.remove('on', 'bad'));
+      btn.classList.add('on');
+      if (EKONOMI_SISI_MISKIN_JS(group.dataset.field) === btn.dataset.val ||
+        (group.dataset.field === 'pendidikan_kepala' && ['tidak_sekolah', 'tidak_tamat_sd', 'sd'].indexOf(btn.dataset.val) > -1) ||
+        (group.dataset.field === 'penghasilan_kepala' && btn.dataset.val === 'di_bawah_600rb')) btn.classList.add('bad');
+      group.dataset.selected = btn.dataset.val;
+    }));
+  });
+}
+async function submitEkonomi(no_kk) {
+  const btn = document.getElementById("btnSimpanEkonomi");
+  if (!btn || btn.disabled) return;
+  btn.disabled = true; btn.textContent = "Menyimpan…";
+  const payload = { no_kk };
+  document.querySelectorAll('[data-field]').forEach(g => { payload[g.dataset.field] = g.dataset.selected !== undefined ? g.dataset.selected : (g.querySelector('button.on') ? g.querySelector('button.on').dataset.val : ''); });
+  payload.catatan = document.getElementById("fCatatanEkonomi").value.trim();
+  const r = await apiPost("setSurveiEkonomi", payload);
+  btn.disabled = false; btn.textContent = "Simpan Survei Ekonomi";
+  if (!r.ok) { formError = r.error; formMsg = ""; setScreen(detailEkonomiScreen(no_kk)); attachEvents(); return; }
+  formError = ""; formMsg = "Survei ekonomi tersimpan.";
+  await refreshEkonomi(); await refreshProgress();
+  setScreen(detailEkonomiScreen(no_kk)); attachEvents();
 }
 
 /* ====================== INFRASTRUKTUR ====================== */
@@ -490,6 +603,12 @@ function attachEvents() {
   bindDetailRumah();
   const btnSimpanKondisi = document.getElementById("btnSimpanKondisi");
   if (btnSimpanKondisi) btnSimpanKondisi.addEventListener("click", () => submitKondisiRumah(btnSimpanKondisi.dataset.id));
+
+  bindEkonomiFilter();
+  document.querySelectorAll("[data-buka-ekonomi]").forEach(b => b.addEventListener("click", () => { formError = ""; formMsg = ""; setScreen(detailEkonomiScreen(b.dataset.bukaEkonomi)); attachEvents(); }));
+  bindDetailEkonomi();
+  const btnSimpanEkonomi = document.getElementById("btnSimpanEkonomi");
+  if (btnSimpanEkonomi) btnSimpanEkonomi.addEventListener("click", () => submitEkonomi(btnSimpanEkonomi.dataset.noKk));
 
   bindInfraFilter();
   const btnTambahInfra = document.getElementById("btnTambahInfra");
