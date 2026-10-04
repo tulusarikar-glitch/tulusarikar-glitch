@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Laskar Sambang RT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EEF1E7; --surface:#FFFFFF; --ink:#20261D; --sub:#5B6353;
+  --green:#1F4D3A; --green-light:#3E7A5C; --gold:#B98A2E; --brick:#A24B3E;
+  --line:#DCE1D2; --nav-bg:#FFFFFF;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  box-sizing:border-box;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121A15; --surface:#1B241D; --ink:#EAEDE4; --sub:#9BA694;
+    --green:#4C8A6B; --green-light:#6BAE8B; --gold:#D6AE5C; --brick:#C97A6A;
+    --line:#2B362B; --nav-bg:#1B241D;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121A15; --surface:#1B241D; --ink:#EAEDE4; --sub:#9BA694;
+  --green:#4C8A6B; --green-light:#6BAE8B; --gold:#D6AE5C; --brick:#C97A6A;
+  --line:#2B362B; --nav-bg:#1B241D;
+}
+*{box-sizing:border-box;}
+html{scroll-padding-top:env(safe-area-inset-top,0px);}
+body{
+  margin:0; min-height:100dvh; background:var(--bg); color:var(--ink);
+  font-family:'Inter',system-ui,sans-serif; display:flex; justify-content:center;
+  padding:24px 12px;
+}
+.phone{
+  width:100%; max-width:420px; background:var(--surface); min-height:calc(100dvh - 48px);
+  border-radius:28px; overflow:hidden; display:flex; flex-direction:column;
+  box-shadow:0 20px 50px rgba(20,30,20,.18); border:1px solid var(--line);
+}
+header{ background:var(--green); color:#fff; padding:20px 20px 16px; position:sticky; top:0; z-index:5; }
+header .brand{font-family:'Fraunces',serif; font-weight:600; font-size:20px; letter-spacing:.2px;}
+header .place{font-size:12.5px; opacity:.9; margin-top:2px;}
+header .who{display:flex; align-items:center; justify-content:space-between; margin-top:12px; gap:10px;}
+header .who .name{font-size:13px; font-weight:600;}
+header .who .role{font-size:11px; opacity:.9;}
+header .logout{background:rgba(255,255,255,.2); border:1px solid rgba(255,255,255,.35); color:#fff; font-size:11.5px; font-weight:600; padding:6px 10px; border-radius:8px; cursor:pointer; font-family:inherit;}
+main{flex:1; overflow-y:auto; padding:18px 16px 90px;}
+h2.title{font-family:'Fraunces',serif; font-weight:600; font-size:19px; margin:2px 0 14px; color:var(--ink);}
+h3.sub-title{font-family:'Fraunces',serif; font-weight:600; font-size:15.5px; margin:18px 0 8px; color:var(--ink);}
+.card{ background:var(--bg); border:1px solid var(--line); border-radius:16px; padding:14px 16px; margin-bottom:12px; }
+.card + .card{margin-top:10px;}
+.row{display:flex; justify-content:space-between; align-items:baseline; gap:10px;}
+.label{font-size:12.5px; color:var(--sub);}
+.value-lg{font-family:'Fraunces',serif; font-size:26px; font-weight:600; margin-top:2px;}
+.stat-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;}
+.stat{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:12px 14px;}
+.stat .n{font-family:'Fraunces',serif; font-size:22px; font-weight:600;}
+.stat .l{font-size:12px; color:var(--sub); margin-top:2px;}
+.item{padding:11px 0; border-bottom:1px solid var(--line);}
+.item:last-child{border-bottom:none;}
+.item-title{font-weight:600; font-size:14.5px;}
+.item-sub{font-size:12.5px; color:var(--sub); margin-top:2px; line-height:1.5;}
+.badge{display:inline-block; font-size:11px; padding:3px 9px; border-radius:99px; font-weight:600;}
+.badge.ok{background:#DCEBE0; color:var(--green);}
+.badge.wait{background:#F3E6C9; color:#8A6417;}
+.badge.due{background:#F3DCD8; color:var(--brick);}
+@media (prefers-color-scheme: dark){ .badge.ok{background:#1E3A2A;} .badge.wait{background:#3B3116;} .badge.due{background:#3C2521;} }
+.btn{ display:inline-block; background:var(--green); color:#fff; border:none; padding:10px 16px; border-radius:11px; font-size:13.5px; font-weight:600; cursor:pointer; font-family:inherit; }
+.btn.outline{background:transparent; color:var(--green); border:1px solid var(--green);}
+.btn.gold{background:var(--gold);}
+.btn.brick{background:var(--brick);}
+.btn.block{width:100%; text-align:center;}
+.btn.sm{padding:6px 10px; font-size:12px; border-radius:8px;}
+.btn:disabled{opacity:.6; cursor:default;}
+.btn-row{display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;}
+.list-link{ display:flex; justify-content:space-between; align-items:center; padding:14px 4px; border-bottom:1px solid var(--line); cursor:pointer; background:none; border-left:none; border-right:none; border-top:none; width:100%; text-align:left; font-family:inherit; color:var(--ink); }
+.list-link:last-child{border-bottom:none;}
+.list-link .name{font-weight:600; font-size:14.5px;}
+.list-link .desc{font-size:12px; color:var(--sub); margin-top:1px;}
+.list-link .chev{color:var(--sub); font-size:16px;}
+.back{ background:none; border:none; color:var(--ink); font-size:14px; font-weight:600; cursor:pointer; padding:0 0 14px; display:flex; align-items:center; gap:6px; font-family:inherit; }
+.section-tag{font-size:11.5px; color:var(--gold); font-weight:700; margin-bottom:4px;}
+nav{ position:sticky; bottom:0; background:var(--nav-bg); border-top:1px solid var(--line); display:flex; padding:8px 4px calc(8px + env(safe-area-inset-bottom,0px)); }
+nav button{ flex:1; background:none; border:none; font-family:inherit; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:3px; padding:6px 2px; color:var(--sub); font-size:11px; font-weight:600; }
+nav button.active{color:var(--green);}
+nav button .ic{font-size:19px;}
+.empty{text-align:center; padding:30px 10px; color:var(--sub); font-size:13.5px;}
+.geo{font-size:11px; color:var(--sub); margin-top:2px;}
+.field{margin-bottom:12px;}
+.field label{display:block; font-size:12px; font-weight:600; color:var(--sub); margin-bottom:4px;}
+.field label .opt{font-weight:400; font-style:italic; color:var(--sub);}
+.field input, .field select, .field textarea{ width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--line); background:var(--surface); color:var(--ink); font-family:inherit; font-size:13.5px; }
+.field input:focus, .field select:focus{outline:2px solid var(--green-light);}
+.err{background:#F3DCD8; color:var(--brick); border-radius:10px; padding:10px 12px; font-size:12.5px; margin-bottom:12px; font-weight:600;}
+.msg-ok{background:#DCEBE0; color:var(--green); border-radius:10px; padding:10px 12px; font-size:12.5px; margin-bottom:12px; font-weight:600;}
+.login-wrap{min-height:calc(100dvh - 48px); display:flex; flex-direction:column; justify-content:center; padding:28px 26px;}
+.login-brand{font-family:'Fraunces',serif; font-weight:700; font-size:26px; color:var(--green); margin-bottom:2px;}
+.login-place{font-size:12.5px; color:var(--sub); margin-bottom:22px;}
+.mask-note{font-size:11px; color:var(--sub); margin-top:2px;}
+.seg{display:flex; gap:6px; margin-bottom:4px; flex-wrap:wrap;}
+.seg button{flex:1; min-width:70px; padding:8px 6px; border-radius:9px; border:1px solid var(--line); background:var(--surface); color:var(--ink); font-family:inherit; font-size:12.5px; font-weight:600; cursor:pointer;}
+.seg button.on{background:var(--green); border-color:var(--green); color:#fff;}
+.seg button.on.bad{background:var(--brick); border-color:var(--brick);}
+.kk-row{display:flex; justify-content:space-between; align-items:center; gap:8px; padding:9px 0; border-bottom:1px solid var(--line);}
+.kk-row:last-child{border-bottom:none;}
+.kk-row select{width:90px; padding:7px 8px; border-radius:8px; border:1px solid var(--line); background:var(--surface); color:var(--ink); font-family:inherit; font-size:13px;}
+</style>
+</head>
+<body>
+<div class="phone" id="phone"></div>
+
+<script>
+/* ====================== KONFIGURASI ====================== */
+const API_URL = "https://script.google.com/macros/s/AKfycbwp520IuPJE_K9XwIueQpw4w5756FWGEsdxqRubYIoAAR5NudNqX9zieLOmLzYHyD7IUg/exec";
+const API_KEY = "gampangwae"; // harus SAMA dengan API_KEY di Code.gs
+
+/* ====================== HELPER API ====================== */
+async function apiGet(action, params) {
+  const aktor = (session && session.username) || "";
+  const q = new URLSearchParams(Object.assign({ action, apiKey: API_KEY, aktor }, params || {}));
+  const res = await fetch(API_URL + "?" + q.toString());
+  return res.json();
+}
+async function apiPost(action, body) {
+  const aktor = (session && session.username) || "";
+  const res = await fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(Object.assign({ action, apiKey: API_KEY, aktor }, body || {}))
+  });
+  return res.json();
+}
+function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+function fmtTgl(v) {
+  if (!v) return "-";
+  const d = new Date(v);
+  if (isNaN(d)) return String(v);
+  return d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+}
+
+/* ====================== SESI ====================== */
+let session = null;
+try { const raw = localStorage.getItem("laskarsambangrt_session"); if (raw) session = JSON.parse(raw); } catch (e) {}
+function saveSession(s) { session = s; try { localStorage.setItem("laskarsambangrt_session", JSON.stringify(s)); } catch (e) {} }
+function clearSession() { session = null; try { localStorage.removeItem("laskarsambangrt_session"); } catch (e) {} }
+
+const ALLOWED_ROLES = ["ketua", "sekretaris", "surveyor"];
+const ROLE_LABEL = { ketua: "Ketua RT", sekretaris: "Sekretaris RT", surveyor: "Petugas Survei" };
+
+/* ====================== STATE ====================== */
+let currentTab = "ringkasan";
+let cache = { progress: null, kondisiRumah: [], infra: [], infraRingkasan: null, wargaKK: [] };
+let formError = "";
+let formMsg = "";
+let geoState = null;
+
+const KONDISI_ASPEK = [
+  ["atap", "Atap"], ["dinding", "Dinding"], ["lantai", "Lantai"], ["ventilasi", "Ventilasi"], ["mck", "MCK"]
+];
+const TANAH_OPSI = [["milik_sah", "Milik sah"], ["belum_jelas", "Belum jelas"], ["sengketa_sewa", "Sengketa/sewa"]];
+const INFRA_JENIS = ["Jalan", "Gorong-gorong", "Drainase/selokan", "Lampu penerangan", "Jembatan", "Lainnya"];
+const INFRA_KONDISI = ["Baik", "Rusak ringan", "Rusak berat", "Belum ada"];
+const INFRA_PRIORITAS = ["Rendah", "Sedang", "Tinggi"];
+const INFRA_STATUS = ["Belum diusulkan", "Diusulkan", "Dikerjakan", "Selesai"];
+const INFRA_PERMUKAAN = ["Aspal", "Cor beton", "Paving", "Makadam", "Tanah"];
+const KESIMPULAN_LABEL = { layak_huni: "Layak huni", perlu_perbaikan: "Perlu perbaikan", rtlh: "Indikasi RTLH", belum_dinilai: "Belum dinilai" };
+const KESIMPULAN_BADGE = { layak_huni: "ok", perlu_perbaikan: "wait", rtlh: "due", belum_dinilai: "" };
+
+function render() {
+  const el = document.getElementById("phone");
+  el.innerHTML = session ? appShell() : loginScreen();
+  attachEvents();
+}
+
+/* ====================== LOGIN ====================== */
+function loginScreen() {
+  return `
+    <div class="login-wrap">
+      <div class="login-brand">Laskar Sambang RT</div>
+      <div class="login-place">Dukuh Tulusari · RT 11, Karangwaru, Plupuh</div>
+      ${formError ? `<div class="err">${esc(formError)}</div>` : ""}
+      <div class="field"><label>Username</label><input id="fUsername" autocomplete="username"></div>
+      <div class="field"><label>Password</label><input id="fPassword" type="password" autocomplete="current-password"></div>
+      <button class="btn block" id="btnLogin">Masuk</button>
+      <p class="mask-note" style="margin-top:16px">Khusus akun Ketua/Sekretaris RT dan Petugas Survei. Untuk peran lain, gunakan Mas eRTe Mobile.</p>
+    </div>`;
+}
+async function doLogin() {
+  const username = document.getElementById("fUsername").value.trim();
+  const password = document.getElementById("fPassword").value;
+  if (!username || !password) { formError = "Username dan password wajib diisi."; render(); return; }
+  formError = "Memeriksa…"; render();
+  const r = await apiGet("login", { mode: "pengurus", username, password });
+  if (!r.ok) { formError = r.error; render(); return; }
+  if (ALLOWED_ROLES.indexOf(r.user.peran) === -1) { formError = "Akun ini tidak punya akses ke Laskar Sambang RT. Gunakan Mas eRTe Mobile untuk peran ini."; render(); return; }
+  formError = "";
+  saveSession(r.user);
+  currentTab = "ringkasan";
+  render();
+  loadAndShow("ringkasan");
+}
+
+/* ====================== SHELL ====================== */
+function appShell() {
+  const tabs = [["ringkasan", "📊", "Ringkasan"], ["rumah", "🏚️", "Rumah Tangga"], ["infra", "🚧", "Infrastruktur"]];
+  return `
+    <header>
+      <div class="brand">Laskar Sambang RT</div>
+      <div class="place">Dukuh Tulusari · RT 11, Karangwaru, Plupuh</div>
+      <div class="who">
+        <div><div class="name">${esc(session.nama)}</div><div class="role">${esc(ROLE_LABEL[session.peran] || session.peran)}</div></div>
+        <button class="logout" id="btnLogout">Keluar</button>
+      </div>
+    </header>
+    <main id="screen">Memuat…</main>
+    <nav id="navbar">
+      ${tabs.map(([t, ic, label]) => `<button data-tab="${t}" class="${currentTab === t ? 'active' : ''}"><span class="ic">${ic}</span>${label}</button>`).join("")}
+    </nav>`;
+}
+function setScreen(html) { const s = document.getElementById("screen"); if (s) s.innerHTML = html; }
+
+/* ====================== NAVIGASI & DATA ====================== */
+async function goTab(tab) { currentTab = tab; formError = ""; formMsg = ""; render(); await loadAndShow(tab); }
+async function loadAndShow(tab) {
+  setScreen('<div class="empty">Memuat…</div>');
+  try {
+    if (tab === "ringkasan") { await refreshProgress(); setScreen(screens.ringkasan()); }
+    else if (tab === "rumah") { await refreshKondisiRumah(); setScreen(screens.rumah()); }
+    else if (tab === "infra") { await refreshInfra(); setScreen(screens.infra()); }
+    attachEvents();
+  } catch (e) {
+    setScreen(`<div class="err">${esc(e.message || "Gagal memuat data.")}</div>`);
+  }
+}
+async function refreshProgress() { const r = await apiGet("getSurveyProgress"); if (!r.ok) throw new Error(r.error); cache.progress = r; }
+async function refreshKondisiRumah() { const r = await apiGet("getKondisiRumah"); if (!r.ok) throw new Error(r.error); cache.kondisiRumah = r.rumah; }
+async function refreshInfra() { const r = await apiGet("getInfrastruktur"); if (!r.ok) throw new Error(r.error); cache.infra = r.infrastruktur; cache.infraRingkasan = r.ringkasan; }
+
+/* ====================== RINGKASAN ====================== */
+const screens = {};
+screens.ringkasan = () => {
+  const p = cache.progress || {};
+  const ru = p.rumah || { total: 0, sudah: 0, belum: 0, daftar_belum: [] };
+  const kk = p.kk || { total: 0, sudah_desil: 0, belum_desil: 0, daftar_belum: [] };
+  const infra = p.infrastruktur || { jumlah_entri: 0, ringkasan: { jumlah_titik: 0 } };
+  return `
+    <div class="section-tag">PROGRES SURVEI</div>
+    <h2 class="title">Ringkasan</h2>
+    <div class="stat-grid">
+      <div class="stat"><div class="n">${ru.sudah}/${ru.total}</div><div class="l">Rumah sudah dinilai</div></div>
+      <div class="stat"><div class="n">${kk.sudah_desil}/${kk.total}</div><div class="l">KK sudah ada desil</div></div>
+      <div class="stat"><div class="n">${infra.jumlah_entri}</div><div class="l">Entri infrastruktur</div></div>
+      <div class="stat"><div class="n">${infra.ringkasan.jumlah_titik || 0}</div><div class="l">Titik perlu perbaikan</div></div>
+    </div>
+    <h3 class="sub-title">Rumah belum dinilai (${ru.belum})</h3>
+    <div class="card" style="padding:4px 16px">
+      ${ru.daftar_belum.length ? ru.daftar_belum.slice(0, 8).map(r => `
+        <button class="list-link" data-buka-rumah="${esc(r.id)}">
+          <span><span class="name">${esc(r.nama)}</span></span><span class="chev">›</span>
+        </button>`).join("") : '<div class="empty">Semua rumah sudah dinilai 🎉</div>'}
+      ${ru.daftar_belum.length > 8 ? `<div class="item-sub" style="padding:8px 4px">+ ${ru.daftar_belum.length - 8} rumah lain — lihat tab Rumah Tangga</div>` : ""}
+    </div>
+    <h3 class="sub-title">KK belum ada data desil (${kk.belum_desil})</h3>
+    <div class="card" style="padding:4px 16px">
+      ${kk.daftar_belum.length ? kk.daftar_belum.slice(0, 8).map(k => `
+        <div class="item"><div class="item-title">${esc(k.kepala)}</div><div class="item-sub">No. KK ${esc(k.no_kk)}</div></div>`).join("") : '<div class="empty">Semua KK sudah ada desil 🎉</div>'}
+      ${kk.daftar_belum.length > 8 ? `<div class="item-sub" style="padding:8px 4px">+ ${kk.daftar_belum.length - 8} KK lain — isi lewat tab Rumah Tangga (buka rumahnya, desil diisi di situ)</div>` : ""}
+    </div>`;
+};
+
+/* ====================== RUMAH TANGGA: daftar + detail ====================== */
+let rumahFilter = "";
+screens.rumah = () => {
+  const list = (cache.kondisiRumah || []).filter(r => !rumahFilter || r.nama.toLowerCase().indexOf(rumahFilter.toLowerCase()) > -1);
+  return `
+    <div class="section-tag">SURVEI RUMAH TANGGA</div>
+    <h2 class="title">Kondisi Rumah & Desil</h2>
+    <div class="field"><input id="fCariRumah" placeholder="🔍 Cari nama/patokan rumah…" value="${esc(rumahFilter)}"></div>
+    <div class="card" style="padding:4px 16px">
+      ${list.length ? list.map(r => `
+        <button class="list-link" data-buka-rumah="${esc(r.id)}">
+          <span><span class="name">${esc(r.nama)}</span><div class="desc">${r.penghuni.length} KK penghuni${r.tanggal_survei ? " · dinilai " + fmtTgl(r.tanggal_survei) : ""}</div></span>
+          <span class="badge ${KESIMPULAN_BADGE[r.kesimpulan] || ''}">${esc(KESIMPULAN_LABEL[r.kesimpulan] || r.kesimpulan)}</span>
+        </button>`).join("") : '<div class="empty">Tidak ada rumah yang cocok.</div>'}
+    </div>`;
+};
+function bindRumahFilter() {
+  const input = document.getElementById("fCariRumah");
+  if (input) input.addEventListener("input", () => { rumahFilter = input.value; setScreen(screens.rumah()); attachEvents(); });
+}
+function detailRumahScreen(id) {
+  const r = (cache.kondisiRumah || []).find(x => String(x.id) === String(id));
+  if (!r) return '<div class="empty">Rumah tidak ditemukan.</div>';
+  const segAspek = (key, val) => `
+    <div class="field"><label>${esc(KONDISI_ASPEK.find(a => a[0] === key)[1])}</label>
+      <div class="seg" data-aspek="${key}">
+        <button type="button" data-val="layak" class="${val === 'layak' ? 'on' : ''}">Layak</button>
+        <button type="button" data-val="tidak_layak" class="${val === 'tidak_layak' ? 'on bad' : ''}">Tidak layak</button>
+      </div></div>`;
+  return `
+    <button class="back" data-back-tab="rumah">‹ Kembali</button>
+    ${formError ? `<div class="err">${esc(formError)}</div>` : ""}
+    ${formMsg ? `<div class="msg-ok">${esc(formMsg)}</div>` : ""}
+    <h2 class="title">${esc(r.nama)}</h2>
+    <div class="item-sub" style="margin:-10px 0 14px">${r.tanggal_survei ? "Terakhir dinilai " + fmtTgl(r.tanggal_survei) + (r.dinilai_oleh ? " oleh " + esc(r.dinilai_oleh) : "") : "Belum pernah dinilai"}</div>
+    <h3 class="sub-title">Kondisi fisik rumah</h3>
+    ${KONDISI_ASPEK.map(([k]) => segAspek(k, r[k])).join("")}
+    <div class="field"><label>Status tanah</label>
+      <div class="seg" data-aspek="status_tanah">
+        ${TANAH_OPSI.map(([v, l]) => `<button type="button" data-val="${v}" class="${r.status_tanah === v ? 'on' : ''}">${l}</button>`).join("")}
+      </div></div>
+    <div class="field"><label>Rumah satu-satunya milik keluarga?</label>
+      <div class="seg" data-aspek="rumah_satu_satunya">
+        <button type="button" data-val="ya" class="${r.rumah_satu_satunya === 'ya' ? 'on' : ''}">Ya</button>
+        <button type="button" data-val="tidak" class="${r.rumah_satu_satunya === 'tidak' ? 'on' : ''}">Tidak</button>
+      </div></div>
+    <div class="field"><label>Riwayat bantuan rumah <span class="opt">(kosongkan bila belum pernah)</span></label>
+      <input id="fRiwayatBantuan" value="${esc(r.riwayat_bantuan_rumah || '')}" placeholder="mis. Bedah rumah 2022"></div>
+    <div class="field"><label>Lokasi GPS</label>
+      <button type="button" class="btn outline sm" id="btnAmbilGeo">📍 Ambil lokasi sekarang</button>
+      <div class="geo" id="geoStatus">${(r.latitude !== "" && r.longitude !== "") ? "📍 " + r.latitude + ", " + r.longitude : "Belum ada koordinat tersimpan"}</div>
+    </div>
+    <button class="btn block" id="btnSimpanKondisi" data-id="${esc(r.id)}">Simpan Penilaian Rumah</button>
+
+    <h3 class="sub-title">KK penghuni & desil</h3>
+    <div class="card" style="padding:6px 16px">
+      ${r.penghuni.length ? r.penghuni.map(k => `
+        <div class="kk-row">
+          <div><div class="item-title">${esc(k.kepala)}</div><div class="item-sub">No. KK ${esc(k.no_kk)}</div></div>
+          <select class="sel-desil" data-no-kk="${esc(k.no_kk)}">
+            <option value="">—</option>
+            ${Array.from({ length: 10 }, (_, i) => i + 1).map(n => `<option value="${n}" ${Number(k.desil) === n ? 'selected' : ''}>Desil ${n}</option>`).join("")}
+          </select>
+        </div>`).join("") : '<div class="empty">Belum ada KK yang ditautkan ke rumah ini (atur di Mas eRTe Mobile > Data Rumah).</div>'}
+    </div>`;
+}
+function bindDetailRumah() {
+  document.querySelectorAll('[data-aspek]').forEach(group => {
+    group.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => {
+      group.querySelectorAll('button').forEach(b => b.classList.remove('on', 'bad'));
+      btn.classList.add('on'); if (btn.dataset.val === 'tidak_layak') btn.classList.add('bad');
+      group.dataset.selected = btn.dataset.val;
+    }));
+  });
+  const btnGeo = document.getElementById("btnAmbilGeo");
+  if (btnGeo) btnGeo.addEventListener("click", () => {
+    const g = document.getElementById("geoStatus");
+    if (g) g.textContent = "Mengambil lokasi…";
+    if (!navigator.geolocation) { if (g) g.textContent = "Geolocation tidak didukung perangkat ini."; return; }
+    navigator.geolocation.getCurrentPosition(
+      pos => { geoState = { lat: pos.coords.latitude, lng: pos.coords.longitude }; if (g) g.textContent = "📍 " + pos.coords.latitude.toFixed(5) + ", " + pos.coords.longitude.toFixed(5); },
+      () => { geoState = null; if (g) g.textContent = "📍 Lokasi tidak tersedia."; }, { enableHighAccuracy: true, timeout: 8000 }
+    );
+  });
+  document.querySelectorAll('.sel-desil').forEach(sel => sel.addEventListener('change', async () => {
+    sel.disabled = true;
+    const r = await apiPost("setDesilKK", { no_kk: sel.dataset.noKk, desil: sel.value });
+    sel.disabled = false;
+    if (!r.ok) { alert(r.error); return; }
+    await refreshProgress();
+  }));
+}
+async function submitKondisiRumah(id) {
+  const btn = document.getElementById("btnSimpanKondisi");
+  if (!btn || btn.disabled) return;
+  btn.disabled = true; btn.textContent = "Menyimpan…";
+  const payload = { id };
+  document.querySelectorAll('[data-aspek]').forEach(g => { payload[g.dataset.aspek] = g.dataset.selected !== undefined ? g.dataset.selected : (g.querySelector('button.on') ? g.querySelector('button.on').dataset.val : ''); });
+  payload.riwayat_bantuan_rumah = document.getElementById("fRiwayatBantuan").value.trim();
+  if (geoState) { payload.latitude = geoState.lat; payload.longitude = geoState.lng; }
+  const r = await apiPost("setKondisiRumah", payload);
+  btn.disabled = false; btn.textContent = "Simpan Penilaian Rumah";
+  if (!r.ok) { formError = r.error; formMsg = ""; setScreen(detailRumahScreen(id)); attachEvents(); return; }
+  formError = ""; formMsg = "Penilaian rumah tersimpan.";
+  geoState = null;
+  await refreshKondisiRumah(); await refreshProgress();
+  setScreen(detailRumahScreen(id)); attachEvents();
+}
+
+/* ====================== INFRASTRUKTUR ====================== */
+let infraFilter = "semua"; // semua | perlu
+screens.infra = () => {
+  let list = cache.infra || [];
+  if (infraFilter === "perlu") list = list.filter(x => x.kondisi !== "Baik" && x.status_penanganan !== "Selesai");
+  const rk = cache.infraRingkasan || {};
+  return `
+    <div class="section-tag">SURVEI INFRASTRUKTUR</div>
+    <h2 class="title">Jalan, Penerangan, Gorong-gorong</h2>
+    <div class="stat-grid">
+      <div class="stat"><div class="n">${rk.jumlah_entri || 0}</div><div class="l">Total entri</div></div>
+      <div class="stat"><div class="n">${rk.jumlah_titik || 0}</div><div class="l">Perlu perbaikan</div></div>
+    </div>
+    <button class="btn block" id="btnTambahInfra" style="margin-bottom:14px">+ Catat Temuan Baru</button>
+    <div class="seg" style="margin-bottom:10px">
+      <button type="button" data-infra-filter="semua" class="${infraFilter === 'semua' ? 'on' : ''}">Semua (${(cache.infra || []).length})</button>
+      <button type="button" data-infra-filter="perlu" class="${infraFilter === 'perlu' ? 'on' : ''}">Perlu perbaikan</button>
+    </div>
+    <div class="card" style="padding:4px 16px">
+      ${list.length ? list.map(x => `
+        <button class="list-link" data-buka-infra="${esc(x.id)}">
+          <span><span class="name">${esc(x.nama)}</span><div class="desc">${esc(x.jenis)} · ${esc(x.kondisi)} · prioritas ${esc(x.prioritas).toLowerCase()}</div></span>
+          <span class="chev">›</span>
+        </button>`).join("") : '<div class="empty">Belum ada data.</div>'}
+    </div>`;
+};
+function bindInfraFilter() {
+  document.querySelectorAll('[data-infra-filter]').forEach(b => b.addEventListener('click', () => { infraFilter = b.dataset.infraFilter; setScreen(screens.infra()); attachEvents(); }));
+}
+function infraForm(existing) {
+  const v = existing || {};
+  const opsiSelect = (id, opsi, sel) => `<select id="${id}">${opsi.map(o => `<option value="${esc(o)}" ${sel === o ? 'selected' : ''}>${esc(o)}</option>`).join("")}</select>`;
+  return `
+    <button class="back" data-back-tab="infra">‹ Batal</button>
+    ${formError ? `<div class="err">${esc(formError)}</div>` : ""}
+    <h2 class="title">${existing ? "Ubah Temuan" : "Catat Temuan Baru"}</h2>
+    <div class="field"><label>Jenis</label>${opsiSelect("fJenis", INFRA_JENIS, v.jenis || "Jalan")}</div>
+    <div class="field"><label>Nama/patokan <span style="color:var(--brick)">*wajib</span></label><input id="fNamaInfra" value="${esc(v.nama || '')}" placeholder="mis. Jalan gang RT 11 depan masjid"></div>
+    <div id="jalanFields" style="display:${(v.jenis || 'Jalan') === 'Jalan' ? 'block' : 'none'}">
+      <div class="field"><label>Panjang (meter) <span class="opt">(opsional)</span></label><input id="fPanjang" type="number" min="0" value="${v.panjang_m || ''}"></div>
+      <div class="field"><label>Permukaan</label>${opsiSelect("fPermukaan", INFRA_PERMUKAAN, v.permukaan || "Aspal")}</div>
+    </div>
+    <div class="field"><label>Kondisi</label>${opsiSelect("fKondisi", INFRA_KONDISI, v.kondisi || "Baik")}</div>
+    <div class="field"><label>Prioritas perbaikan</label>${opsiSelect("fPrioritas", INFRA_PRIORITAS, v.prioritas || "Sedang")}</div>
+    <div class="field"><label>Status penanganan</label>${opsiSelect("fStatusPenanganan", INFRA_STATUS, v.status_penanganan || "Belum diusulkan")}</div>
+    <div class="field"><label>Keterangan <span class="opt">(opsional)</span></label><textarea id="fKeteranganInfra" rows="2">${esc(v.keterangan || '')}</textarea></div>
+    <div class="field"><label>Lokasi GPS</label>
+      <button type="button" class="btn outline sm" id="btnAmbilGeoInfra">📍 Ambil lokasi sekarang</button>
+      <div class="geo" id="geoStatusInfra">${(v.latitude !== undefined && v.latitude !== "") ? "📍 " + v.latitude + ", " + v.longitude : "Belum ada koordinat"}</div>
+    </div>
+    <button class="btn block" id="btnSimpanInfra" data-id="${esc(v.id || '')}">Simpan</button>`;
+}
+function bindInfraForm() {
+  const selJenis = document.getElementById("fJenis");
+  const jalanFields = document.getElementById("jalanFields");
+  if (selJenis) selJenis.addEventListener("change", () => { jalanFields.style.display = selJenis.value === "Jalan" ? "block" : "none"; });
+  const btnGeo = document.getElementById("btnAmbilGeoInfra");
+  if (btnGeo) btnGeo.addEventListener("click", () => {
+    const g = document.getElementById("geoStatusInfra");
+    if (g) g.textContent = "Mengambil lokasi…";
+    if (!navigator.geolocation) { if (g) g.textContent = "Geolocation tidak didukung perangkat ini."; return; }
+    navigator.geolocation.getCurrentPosition(
+      pos => { geoState = { lat: pos.coords.latitude, lng: pos.coords.longitude }; if (g) g.textContent = "📍 " + pos.coords.latitude.toFixed(5) + ", " + pos.coords.longitude.toFixed(5); },
+      () => { geoState = null; if (g) g.textContent = "📍 Lokasi tidak tersedia."; }, { enableHighAccuracy: true, timeout: 8000 }
+    );
+  });
+}
+async function submitInfra(id) {
+  const btn = document.getElementById("btnSimpanInfra");
+  if (!btn || btn.disabled) return;
+  const nama = document.getElementById("fNamaInfra").value.trim();
+  if (!nama) { formError = "Nama/patokan wajib diisi."; setScreen(infraForm(id ? collectInfraPayload(id) : null)); attachEvents(); return; }
+  btn.disabled = true; btn.textContent = "Menyimpan…";
+  const payload = collectInfraPayload(id);
+  const r = await apiPost(id ? "updateInfrastruktur" : "addInfrastruktur", payload);
+  btn.disabled = false; btn.textContent = "Simpan";
+  if (!r.ok) { formError = r.error; setScreen(infraForm(payload)); attachEvents(); return; }
+  formError = ""; geoState = null;
+  await refreshInfra(); await refreshProgress();
+  currentTab = "infra"; render(); await loadAndShow("infra");
+}
+function collectInfraPayload(id) {
+  const payload = {
+    id: id || undefined,
+    jenis: document.getElementById("fJenis").value,
+    nama: document.getElementById("fNamaInfra").value.trim(),
+    panjang_m: document.getElementById("fPanjang") ? document.getElementById("fPanjang").value : "",
+    permukaan: document.getElementById("fPermukaan") ? document.getElementById("fPermukaan").value : "",
+    kondisi: document.getElementById("fKondisi").value,
+    prioritas: document.getElementById("fPrioritas").value,
+    status_penanganan: document.getElementById("fStatusPenanganan").value,
+    keterangan: document.getElementById("fKeteranganInfra").value.trim()
+  };
+  if (geoState) { payload.latitude = geoState.lat; payload.longitude = geoState.lng; }
+  return payload;
+}
+
+/* ====================== EVENTS ====================== */
+function attachEvents() {
+  const btnLogin = document.getElementById("btnLogin");
+  if (btnLogin) btnLogin.addEventListener("click", doLogin);
+  const btnLogout = document.getElementById("btnLogout");
+  if (btnLogout) btnLogout.addEventListener("click", () => { clearSession(); render(); });
+  document.querySelectorAll("#navbar [data-tab]").forEach(b => b.addEventListener("click", () => goTab(b.dataset.tab)));
+  document.querySelectorAll("[data-back-tab]").forEach(b => b.addEventListener("click", () => { formError = ""; formMsg = ""; setScreen(screens[b.dataset.backTab]()); attachEvents(); }));
+
+  bindRumahFilter();
+  document.querySelectorAll("[data-buka-rumah]").forEach(b => b.addEventListener("click", () => { formError = ""; formMsg = ""; geoState = null; setScreen(detailRumahScreen(b.dataset.bukaRumah)); attachEvents(); }));
+  bindDetailRumah();
+  const btnSimpanKondisi = document.getElementById("btnSimpanKondisi");
+  if (btnSimpanKondisi) btnSimpanKondisi.addEventListener("click", () => submitKondisiRumah(btnSimpanKondisi.dataset.id));
+
+  bindInfraFilter();
+  const btnTambahInfra = document.getElementById("btnTambahInfra");
+  if (btnTambahInfra) btnTambahInfra.addEventListener("click", () => { formError = ""; geoState = null; setScreen(infraForm()); attachEvents(); });
+  document.querySelectorAll("[data-buka-infra]").forEach(b => b.addEventListener("click", () => {
+    const rec = (cache.infra || []).find(x => String(x.id) === String(b.dataset.bukaInfra));
+    formError = ""; geoState = null; setScreen(infraForm(rec)); attachEvents();
+  }));
+  bindInfraForm();
+  const btnSimpanInfra = document.getElementById("btnSimpanInfra");
+  if (btnSimpanInfra) btnSimpanInfra.addEventListener("click", () => submitInfra(btnSimpanInfra.dataset.id));
+}
+
+render();
+if (session) loadAndShow(currentTab);
+</script>
+</body>
+</html>
