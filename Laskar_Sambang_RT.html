@@ -185,6 +185,11 @@ const PENGHASILAN_OPSI = [["di_bawah_600rb", "Di bawah Rp600rb/bulan"], ["600rb_
 const STATUS_PENGAJUAN_OPSI = [["belum_diajukan", "Belum diajukan"], ["diajukan", "Sudah diajukan ke Desa"], ["disetujui", "Disetujui"], ["ditolak", "Ditolak"]];
 const STATUS_PENGAJUAN_BADGE = { belum_diajukan: "", diajukan: "wait", disetujui: "ok", ditolak: "due" };
 
+/* ====================== DATA WARGA (betulkan/lengkapi hasil scan KK) ====================== */
+const JK_OPSI = ["Laki-laki", "Perempuan"];
+const STATUS_HUBUNGAN_OPSI = ["Kepala Keluarga", "Istri", "Anak", "Menantu", "Cucu", "Orang Tua", "Mertua", "Famili Lain", "Lainnya"];
+const STATUS_KAWIN_OPSI = ["Belum Kawin", "Kawin", "Cerai Hidup", "Cerai Mati"];
+
 function render() {
   const el = document.getElementById("phone");
   el.innerHTML = session ? appShell() : loginScreen();
@@ -221,7 +226,7 @@ async function doLogin() {
 
 /* ====================== SHELL ====================== */
 function appShell() {
-  const tabs = [["ringkasan", "📊", "Ringkasan"], ["rumah", "🏚️", "Rumah Tangga"], ["ekonomi", "📋", "Ekonomi"], ["infra", "🚧", "Infrastruktur"]];
+  const tabs = [["ringkasan", "📊", "Ringkasan"], ["rumah", "🏚️", "Rumah Tangga"], ["ekonomi", "📋", "Ekonomi"], ["warga", "🪪", "Data Warga"], ["infra", "🚧", "Infrastruktur"]];
   return `
     <header>
       <div class="brand">Laskar Sambang RT</div>
@@ -246,6 +251,7 @@ async function loadAndShow(tab) {
     if (tab === "ringkasan") { await refreshProgress(); setScreen(screens.ringkasan()); }
     else if (tab === "rumah") { await refreshKondisiRumah(); setScreen(screens.rumah()); }
     else if (tab === "ekonomi") { await refreshEkonomi(); setScreen(screens.ekonomi()); }
+    else if (tab === "warga") { await refreshWargaKK(); setScreen(screens.warga()); }
     else if (tab === "infra") { await refreshInfra(); setScreen(screens.infra()); }
     attachEvents();
   } catch (e) {
@@ -256,6 +262,7 @@ async function refreshProgress() { const r = await apiGet("getSurveyProgress"); 
 async function refreshKondisiRumah() { const r = await apiGet("getKondisiRumah"); if (!r.ok) throw new Error(r.error); cache.kondisiRumah = r.rumah; }
 async function refreshInfra() { const r = await apiGet("getInfrastruktur"); if (!r.ok) throw new Error(r.error); cache.infra = r.infrastruktur; cache.infraRingkasan = r.ringkasan; }
 async function refreshEkonomi() { const r = await apiGet("getSurveiEkonomi"); if (!r.ok) throw new Error(r.error); cache.ekonomi = r.ekonomi; }
+async function refreshWargaKK() { const r = await apiGet("getWargaKK"); if (!r.ok) throw new Error(r.error); cache.wargaKK = r.kk; }
 
 /* ====================== RINGKASAN ====================== */
 const screens = {};
@@ -492,6 +499,165 @@ async function submitEkonomi(no_kk) {
   setScreen(detailEkonomiScreen(no_kk)); attachEvents();
 }
 
+/* ====================== DATA WARGA: daftar KK → anggota → form ====================== */
+let wargaFilter = "";
+let anggotaCache = {}; // no_kk -> array anggota lengkap (dari getAnggota)
+screens.warga = () => {
+  const q = wargaFilter.toLowerCase();
+  const list = (cache.wargaKK || []).filter(k => !q || k.kepala.toLowerCase().indexOf(q) > -1 || String(k.no_kk).indexOf(q) > -1);
+  return `
+    <div class="section-tag">BETULKAN HASIL SCAN KK</div>
+    <h2 class="title">Data Warga</h2>
+    <div class="item-sub" style="margin:-8px 0 14px">Kalau ada nama/NIK/tanggal lahir yang salah baca saat scan KK, buka KK-nya lalu betulkan di sini. Data bantuan sosial tidak ditampilkan &amp; tidak bisa diubah lewat app ini.</div>
+    <div class="field"><input id="fCariWarga" placeholder="🔍 Cari nama kepala keluarga / No. KK…" value="${esc(wargaFilter)}"></div>
+    <div class="card" style="padding:4px 16px">
+      ${list.length ? list.map(k => `
+        <button class="list-link" data-buka-kk="${esc(k.no_kk)}">
+          <span><span class="name">${esc(k.kepala)}</span><div class="desc">No. KK ${esc(k.no_kk)} · ${k.jiwa} jiwa</div></span>
+          <span class="chev">›</span>
+        </button>`).join("") : '<div class="empty">Tidak ada KK yang cocok.</div>'}
+    </div>`;
+};
+function bindWargaFilter() {
+  const input = document.getElementById("fCariWarga");
+  if (input) input.addEventListener("input", () => { wargaFilter = input.value; setScreen(screens.warga()); attachEvents(); });
+}
+async function bukaWargaKK(no_kk) {
+  formError = ""; formMsg = "";
+  setScreen('<button class="back" data-back-tab="warga">‹ Kembali</button><div class="empty">Memuat anggota…</div>');
+  try {
+    const r = await apiGet("getAnggota", { no_kk });
+    if (!r.ok) throw new Error(r.error);
+    anggotaCache[no_kk] = r.anggota;
+    setScreen(detailWargaKKScreen(no_kk));
+  } catch (e) {
+    setScreen(`<button class="back" data-back-tab="warga">‹ Kembali</button><div class="err">${esc(e.message || "Gagal memuat.")}</div>`);
+  }
+  attachEvents();
+}
+function detailWargaKKScreen(no_kk) {
+  const anggota = anggotaCache[no_kk] || [];
+  return `
+    <button class="back" data-back-tab="warga">‹ Kembali</button>
+    ${formMsg ? `<div class="msg-ok">${esc(formMsg)}</div>` : ""}
+    <h2 class="title">KK ${esc(no_kk)}</h2>
+    <div class="card" style="padding:4px 16px">
+      ${anggota.length ? anggota.map(a => `
+        <button class="list-link" data-edit-anggota="${esc(a.nik)}" data-edit-anggota-kk="${esc(no_kk)}">
+          <span><span class="name">${esc(a.nama)}</span><div class="desc">NIK ${esc(a.nik || '(kosong)')} · ${esc(a.status_hubungan || '-')}</div></span>
+          <span class="chev">›</span>
+        </button>`).join("") : '<div class="empty">Belum ada anggota di KK ini.</div>'}
+    </div>
+    <button class="btn outline block" id="btnTambahAnggota" data-no-kk="${esc(no_kk)}">+ Tambah Anggota yang Terlewat</button>`;
+}
+function selField(id, label, opsi, val, opt) {
+  return `<div class="field"><label>${esc(label)}${opt ? ' <span class="opt">(opsional)</span>' : ''}</label>
+    <select id="${id}"><option value="">—</option>${opsi.map(o => `<option value="${esc(o)}" ${val === o ? 'selected' : ''}>${esc(o)}</option>`).join("")}</select></div>`;
+}
+function txtField(id, label, val, opt, placeholder) {
+  return `<div class="field"><label>${esc(label)}${opt ? ' <span class="opt">(opsional)</span>' : ''}</label>
+    <input id="${id}" value="${esc(val || '')}" ${placeholder ? `placeholder="${esc(placeholder)}"` : ''}></div>`;
+}
+function anggotaFormFields(a) {
+  a = a || {};
+  return `
+    ${txtField("fNamaW", "Nama lengkap", a.nama, false)}
+    <div class="field"><label>Jenis kelamin</label>
+      <div class="seg" data-field="jenis_kelamin">
+        ${JK_OPSI.map(v => `<button type="button" data-val="${v}" class="${a.jenis_kelamin === v ? 'on' : ''}">${v}</button>`).join("")}
+      </div></div>
+    ${txtField("fTtlW", "Tempat, tanggal lahir", a.ttl, true, "mis. Sragen, 17-08-1990")}
+    ${selField("fAgamaW", "Agama", ["Islam", "Kristen", "Katolik", "Hindu", "Buddha", "Konghucu", "Lainnya"], a.agama, true)}
+    ${selField("fPendidikanW", "Pendidikan terakhir", ["Tidak/Belum Sekolah", "SD", "SMP", "SMA", "D1-D3", "S1", "S2", "S3"], a.pendidikan, true)}
+    ${txtField("fPekerjaanW", "Pekerjaan", a.pekerjaan, true)}
+    ${selField("fStatusKawinW", "Status perkawinan", STATUS_KAWIN_OPSI, a.status_kawin, true)}
+    ${selField("fHubunganW", "Status hubungan dalam keluarga", STATUS_HUBUNGAN_OPSI, a.status_hubungan, true)}
+    ${txtField("fAyahW", "Nama ayah", a.nama_ayah, true)}
+    ${txtField("fIbuW", "Nama ibu", a.nama_ibu, true)}`;
+}
+function editAnggotaScreen(no_kk, nik) {
+  const a = (anggotaCache[no_kk] || []).find(x => String(x.nik) === String(nik)) || {};
+  return `
+    <button class="back" data-back-warga-kk="${esc(no_kk)}">‹ Kembali</button>
+    ${formError ? `<div class="err">${esc(formError)}</div>` : ""}
+    <h2 class="title">Betulkan Data Diri</h2>
+    <div class="field"><label>NIK saat ini</label><input value="${esc(a.nik || '(kosong)')}" disabled></div>
+    <div class="field"><label>NIK yang benar <span class="opt">(isi hanya kalau NIK di atas salah baca)</span></label><input id="fNikBaruW" placeholder="${esc(a.nik || '16 digit NIK')}"></div>
+    <div class="field"><label>No. KK <span class="opt">(isi hanya kalau No. KK salah baca)</span></label><input id="fNoKkW" placeholder="${esc(no_kk)}"></div>
+    ${anggotaFormFields(a)}
+    <div class="btn-row">
+      <button class="btn block" id="btnSimpanAnggota" data-no-kk="${esc(no_kk)}" data-nik="${esc(a.nik || '')}">Simpan Perbaikan</button>
+    </div>`;
+}
+function addAnggotaScreen(no_kk) {
+  return `
+    <button class="back" data-back-warga-kk="${esc(no_kk)}">‹ Kembali</button>
+    ${formError ? `<div class="err">${esc(formError)}</div>` : ""}
+    <h2 class="title">Tambah Anggota</h2>
+    <div class="item-sub" style="margin:-10px 0 14px">Untuk anggota KK ${esc(no_kk)} yang terlewat saat scan.</div>
+    <div class="field"><label>NIK <span style="color:var(--brick)">*wajib</span></label><input id="fNikBaruW" placeholder="16 digit NIK"></div>
+    ${anggotaFormFields({})}
+    <button class="btn block" id="btnTambahAnggotaSimpan" data-no-kk="${esc(no_kk)}">Simpan Anggota Baru</button>`;
+}
+function bindAnggotaForm() {
+  document.querySelectorAll('[data-field]').forEach(group => {
+    group.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => {
+      group.querySelectorAll('button').forEach(b => b.classList.remove('on'));
+      btn.classList.add('on'); group.dataset.selected = btn.dataset.val;
+    }));
+  });
+}
+function collectAnggotaPayload() {
+  const payload = {
+    nama: document.getElementById("fNamaW").value.trim(),
+    ttl: document.getElementById("fTtlW").value.trim(),
+    agama: document.getElementById("fAgamaW").value,
+    pendidikan: document.getElementById("fPendidikanW").value,
+    pekerjaan: document.getElementById("fPekerjaanW").value.trim(),
+    status_kawin: document.getElementById("fStatusKawinW").value,
+    status_hubungan: document.getElementById("fHubunganW").value,
+    nama_ayah: document.getElementById("fAyahW").value.trim(),
+    nama_ibu: document.getElementById("fIbuW").value.trim()
+  };
+  document.querySelectorAll('[data-field]').forEach(g => { payload[g.dataset.field] = g.dataset.selected !== undefined ? g.dataset.selected : (g.querySelector('button.on') ? g.querySelector('button.on').dataset.val : ''); });
+  return payload;
+}
+async function submitEditAnggota(no_kk, nikLama) {
+  const btn = document.getElementById("btnSimpanAnggota");
+  if (!btn || btn.disabled) return;
+  if (!document.getElementById("fNamaW").value.trim()) { formError = "Nama tidak boleh kosong."; setScreen(editAnggotaScreen(no_kk, nikLama)); attachEvents(); return; }
+  btn.disabled = true; btn.textContent = "Menyimpan…";
+  const payload = Object.assign({ nik: nikLama }, collectAnggotaPayload());
+  const nikBaru = document.getElementById("fNikBaruW").value.trim();
+  if (nikBaru) payload.nik_baru = nikBaru;
+  const noKkBaru = document.getElementById("fNoKkW").value.trim();
+  if (noKkBaru) payload.no_kk = noKkBaru;
+  const r = await apiPost("updateAnggota", payload);
+  btn.disabled = false; btn.textContent = "Simpan Perbaikan";
+  if (!r.ok) { formError = r.error; setScreen(editAnggotaScreen(no_kk, nikLama)); attachEvents(); return; }
+  formError = ""; formMsg = "Data anggota diperbarui.";
+  const tujuanKK = noKkBaru || no_kk;
+  delete anggotaCache[no_kk];
+  await refreshWargaKK();
+  await bukaWargaKK(tujuanKK);
+}
+async function submitAddAnggota(no_kk) {
+  const btn = document.getElementById("btnTambahAnggotaSimpan");
+  if (!btn || btn.disabled) return;
+  const nik = document.getElementById("fNikBaruW").value.trim();
+  const nama = document.getElementById("fNamaW").value.trim();
+  if (!nik || !nama) { formError = "NIK dan nama wajib diisi."; setScreen(addAnggotaScreen(no_kk)); attachEvents(); return; }
+  btn.disabled = true; btn.textContent = "Menyimpan…";
+  const payload = Object.assign({ no_kk, nik }, collectAnggotaPayload());
+  const r = await apiPost("addAnggota", payload);
+  btn.disabled = false; btn.textContent = "Simpan Anggota Baru";
+  if (!r.ok) { formError = r.error; setScreen(addAnggotaScreen(no_kk)); attachEvents(); return; }
+  formError = ""; formMsg = "Anggota baru ditambahkan.";
+  delete anggotaCache[no_kk];
+  await refreshWargaKK();
+  await bukaWargaKK(no_kk);
+}
+
 /* ====================== INFRASTRUKTUR ====================== */
 let infraFilter = "semua"; // semua | perlu
 screens.infra = () => {
@@ -609,6 +775,20 @@ function attachEvents() {
   bindDetailEkonomi();
   const btnSimpanEkonomi = document.getElementById("btnSimpanEkonomi");
   if (btnSimpanEkonomi) btnSimpanEkonomi.addEventListener("click", () => submitEkonomi(btnSimpanEkonomi.dataset.noKk));
+
+  bindWargaFilter();
+  document.querySelectorAll("[data-buka-kk]").forEach(b => b.addEventListener("click", () => bukaWargaKK(b.dataset.bukaKk)));
+  document.querySelectorAll("[data-back-warga-kk]").forEach(b => b.addEventListener("click", () => { formError = ""; setScreen(detailWargaKKScreen(b.dataset.backWargaKk)); attachEvents(); }));
+  document.querySelectorAll("[data-edit-anggota]").forEach(b => b.addEventListener("click", () => {
+    formError = ""; setScreen(editAnggotaScreen(b.dataset.editAnggotaKk, b.dataset.editAnggota)); attachEvents();
+  }));
+  const btnTambahAnggota = document.getElementById("btnTambahAnggota");
+  if (btnTambahAnggota) btnTambahAnggota.addEventListener("click", () => { formError = ""; setScreen(addAnggotaScreen(btnTambahAnggota.dataset.noKk)); attachEvents(); });
+  bindAnggotaForm();
+  const btnSimpanAnggota = document.getElementById("btnSimpanAnggota");
+  if (btnSimpanAnggota) btnSimpanAnggota.addEventListener("click", () => submitEditAnggota(btnSimpanAnggota.dataset.noKk, btnSimpanAnggota.dataset.nik));
+  const btnTambahAnggotaSimpan = document.getElementById("btnTambahAnggotaSimpan");
+  if (btnTambahAnggotaSimpan) btnTambahAnggotaSimpan.addEventListener("click", () => submitAddAnggota(btnTambahAnggotaSimpan.dataset.noKk));
 
   bindInfraFilter();
   const btnTambahInfra = document.getElementById("btnTambahInfra");
