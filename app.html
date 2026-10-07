@@ -268,7 +268,7 @@ const can = {
   finalizeSurat: () => session && session.peran === "ketua",
   processPengaduan: () => session && (session.peran === "ketua" || session.peran === "sekretaris"),
   manageKT: () => session && (session.peran === "ketua" || session.peran === "kt_ketua"),
-  viewKasJimpitan: () => session && (session.peran === "ketua" || session.peran === "kt_ketua" || session.peran === "kt_bendahara" || session.peran === "warga"),
+  viewKasJimpitan: () => session && (session.peran === "ketua" || session.peran === "kt_ketua" || session.peran === "kt_bendahara"),
   manageKontak: () => session && (session.peran === "ketua" || session.peran === "sekretaris"),
   manageIuranRT: () => session && (session.peran === "ketua" || session.peran === "bendahara"),
   hapusPertemuanRT: () => session && session.peran === "ketua",
@@ -285,11 +285,43 @@ const can = {
 can.editKas = can.editKasRT;
 const ROLE_LABEL = { ketua: "Ketua RT", sekretaris: "Sekretaris RT", bendahara: "Bendahara RT",
   kt_ketua: "Ketua Karang Taruna", kt_bendahara: "Bendahara Karang Taruna", kt_petugas: "Petugas Jimpitan",
-  admin: "Admin", warga: "Warga" };
+  surveyor: "Petugas Survei", admin: "Admin", warga: "Warga" };
 
 /* ====================== DATA TETAP (belum ada di struktur Sheet spesifikasi) ====================== */
 const STATIS = {
-  surat_jenis:["Surat Pengantar KTP/KK","Surat Keterangan Domisili","Surat Keterangan Tidak Mampu","Surat Pengantar Nikah","Surat Keterangan Kematian"],
+  surat_jenis:["Surat Pengantar KTP/KK","Surat Keterangan Domisili","Surat Keterangan Tidak Mampu","Surat Pengantar Nikah","Surat Keterangan Kematian","Surat Pengantar Izin"],
+};
+// Field tambahan tiap jenis surat (selaras dgn SURAT_EXTRA_FIELDS di Code.gs) + apakah subjek suratnya
+// WAJIB bisa beda dari pemohon (mis. Surat Kematian biasanya diajukan pengurus atas nama almarhum).
+const SURAT_CONFIG = {
+  "Surat Pengantar KTP/KK": { subjekBisaBeda: false, extra: [
+    { key: "tujuan_pengantar", label: "Keperluan pengantar", type: "select", opsi: ["Pembuatan KTP Baru","Penggantian KTP Hilang/Rusak","Pembuatan KK Baru","Perubahan Data KK","Lainnya"] }
+  ]},
+  "Surat Keterangan Domisili": { subjekBisaBeda: false, extra: [
+    { key: "lama_tinggal", label: "Sudah berdomisili di sini sejak", type: "text", placeholder: "mis. Tahun 2015" }
+  ]},
+  "Surat Keterangan Tidak Mampu": { subjekBisaBeda: false, extra: [
+    { key: "tujuan_sktm", label: "Untuk keperluan", type: "select", opsi: ["Beasiswa Pendidikan","Keringanan Biaya Kesehatan/BPJS","Bantuan Sosial","Lainnya"] }
+  ]},
+  "Surat Pengantar Nikah": { subjekBisaBeda: false, extra: [
+    { key: "nama_pasangan", label: "Nama calon pasangan", type: "text" },
+    { key: "alamat_pasangan", label: "Alamat calon pasangan", type: "text", opsional: true },
+    { key: "rencana_tanggal", label: "Rencana tanggal akad/nikah", type: "date", opsional: true },
+    { key: "tujuan_instansi", label: "Surat ini diajukan ke", type: "select", opsi: ["KUA (Kantor Urusan Agama)","Kantor Catatan Sipil"] }
+  ]},
+  "Surat Keterangan Kematian": { subjekBisaBeda: true, subjekLabel: "Data Almarhum/Almarhumah", extra: [
+    { key: "tanggal_meninggal", label: "Tanggal meninggal", type: "date" },
+    { key: "tempat_meninggal", label: "Tempat meninggal", type: "text" },
+    { key: "sebab_meninggal", label: "Sebab meninggal", type: "text" },
+    { key: "nama_pelapor", label: "Nama pelapor", type: "text" },
+    { key: "hubungan_pelapor", label: "Hubungan pelapor dengan almarhum/ah", type: "text", placeholder: "mis. Anak kandung" }
+  ]},
+  "Surat Pengantar Izin": { subjekBisaBeda: false, extra: [
+    { key: "jenis_izin", label: "Jenis izin yang diajukan", type: "select", opsi: ["Izin Usaha/Tempat Usaha","Izin Keramaian/Hajatan","Izin Kegiatan/Acara","Izin Pendirian Bangunan","Izin Sekolah/Pendidikan","Lainnya"] },
+    { key: "nama_kegiatan", label: "Nama usaha/kegiatan", type: "text" },
+    { key: "lokasi", label: "Lokasi", type: "text", opsional: true },
+    { key: "waktu_pelaksanaan", label: "Waktu pelaksanaan (kalau berupa kegiatan)", type: "text", opsional: true, placeholder: "mis. Minggu, 10 Agustus 2025, 19.00 WIB" }
+  ]}
 };
 function statusBadge(s) {
   s = String(s || "").toLowerCase();
@@ -823,7 +855,8 @@ const screens = {
           ${cache.surat.length ? cache.surat.map(s=>`
             <div class="item">
               <div class="row"><span class="item-title">${esc(s.jenis_surat)}</span>${statusBadge(s.status)}</div>
-              <div class="item-sub">${esc(s.nama_pemohon)} · NIK ${esc(maskNik(s.nik_pemohon))}</div>
+              <div class="item-sub">Pemohon: ${esc(s.nama_pemohon)}${s.nik_pemohon?(' · NIK '+esc(maskNik(s.nik_pemohon))):''}</div>
+              ${s.subjek && s.subjek.nama && s.subjek.nama !== s.nama_pemohon ? `<div class="item-sub">Atas nama: <strong>${esc(s.subjek.nama)}</strong></div>` : ""}
               <div class="item-sub">${esc(s.keperluan)}</div>
               ${s.nomor_surat ? `<div class="item-sub">No. surat: ${esc(s.nomor_surat)}</div>` : ""}
               <div class="btn-row">
@@ -1920,14 +1953,65 @@ function pengumumanForm(existing) {
 }
 
 /* ====================== FORM: Ajukan Surat ====================== */
+function suratExtraFieldHtml(f) {
+  const id = "fExtra_" + f.key;
+  const optMark = f.opsional ? ' <span class="opt">(opsional)</span>' : '';
+  if (f.type === "select") {
+    return `<div class="field"><label>${esc(f.label)}${optMark}</label><select id="${id}"><option value="">— pilih —</option>${f.opsi.map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join("")}</select></div>`;
+  }
+  if (f.type === "date") {
+    return `<div class="field"><label>${esc(f.label)}${optMark}</label><input id="${id}" type="date"></div>`;
+  }
+  return `<div class="field"><label>${esc(f.label)}${optMark}</label><input id="${id}" ${f.placeholder ? `placeholder="${esc(f.placeholder)}"` : ''}></div>`;
+}
 function suratForm(jenisSurat) {
+  const cfg = SURAT_CONFIG[jenisSurat] || { subjekBisaBeda: false, extra: [] };
+  // Hanya jenis surat yg memang lazim diajukan pengurus atas nama orang lain (mis. Surat Kematian) yang
+  // menampilkan form "subjek terpisah" — dan hanya kalau yang login memang pengurus, bukan warga biasa.
+  const prosesForOther = cfg.subjekBisaBeda && can.processSurat();
   return `
     <button class="back" data-back-tab="surat">‹ Batal</button>
     <h2 class="title">Ajukan ${esc(jenisSurat)}</h2>
     ${formError ? `<div class="err">${esc(formError)}</div>` : ""}
-    <div class="field"><label>Nama pemohon</label><input value="${esc(session.nama)}" disabled></div>
-    <div class="field"><label>Keperluan</label><input id="fKeperluan" placeholder="Contoh: untuk melamar pekerjaan"></div>
+    <div class="field"><label>Pemohon (yang mengajukan)</label><input value="${esc(session.nama)}" disabled></div>
+    ${prosesForOther ? `
+    <h3 class="sub-title" style="font-size:15px; margin-top:16px">${esc(cfg.subjekLabel || "Data Subjek Surat")}</h3>
+    <div class="item-sub" style="margin:-4px 0 10px">Isi NIK dulu kalau orangnya ada di Data Warga — data akan terisi otomatis dan bisa dikoreksi. Kalau tidak ketemu, isi manual.</div>
+    <div class="field"><label>NIK</label>
+      <div style="display:flex; gap:8px">
+        <input id="fSubjekNik" inputmode="numeric" style="flex:1">
+        <button type="button" class="btn outline sm" id="btnCariSubjek">Cari</button>
+      </div></div>
+    <div class="field"><label>Nama lengkap <span style="color:var(--brick)">*wajib</span></label><input id="fSubjekNama"></div>
+    <div class="field"><label>Tempat/Tanggal lahir</label><input id="fSubjekTtl" placeholder="Sragen, 17-08-1990"></div>
+    <div class="field"><label>Jenis kelamin</label>
+      <select id="fSubjekJk"><option value="">— pilih —</option><option>Laki-laki</option><option>Perempuan</option></select></div>
+    <div class="field"><label>Agama</label><input id="fSubjekAgama"></div>
+    <div class="field"><label>Pekerjaan</label><input id="fSubjekPekerjaan"></div>
+    <div class="field"><label>Status perkawinan</label><input id="fSubjekKawin" placeholder="Belum kawin / Kawin / Cerai Hidup / Cerai Mati"></div>
+    <div class="field"><label>Alamat</label><input id="fSubjekAlamat" value="Dukuh Tulusari RT 011"></div>
+    ` : ""}
+    <h3 class="sub-title" style="font-size:15px; margin-top:16px">Detail Surat</h3>
+    ${(cfg.extra || []).map(f => suratExtraFieldHtml(f)).join("")}
+    <div class="field"><label>Keperluan singkat</label><input id="fKeperluan" placeholder="Contoh: untuk melamar pekerjaan"></div>
     <button class="btn block" id="btnAjukanSurat" data-jenis="${esc(jenisSurat)}">Kirim pengajuan</button>`;
+}
+async function cariSubjekSurat() {
+  const btn = document.getElementById("btnCariSubjek");
+  const nik = document.getElementById("fSubjekNik").value.trim();
+  if (!nik) return;
+  btn.disabled = true; btn.textContent = "Mencari…";
+  const r = await apiGet("cariWargaSurat", { nik });
+  btn.disabled = false; btn.textContent = "Cari";
+  if (!r.ok) { alert(r.error); return; }
+  const d = r.identitas;
+  document.getElementById("fSubjekNama").value = d.nama || "";
+  document.getElementById("fSubjekTtl").value = d.ttl || "";
+  document.getElementById("fSubjekJk").value = d.jenis_kelamin || "";
+  document.getElementById("fSubjekAgama").value = d.agama || "";
+  document.getElementById("fSubjekPekerjaan").value = d.pekerjaan || "";
+  document.getElementById("fSubjekKawin").value = d.status_kawin || "";
+  document.getElementById("fSubjekAlamat").value = d.alamat || "Dukuh Tulusari RT 011";
 }
 
 /* ====================== FORM: Buat Pengaduan ====================== */
@@ -2469,6 +2553,7 @@ function attachEvents() {
   /* ---- surat ---- */
   qa("[data-ajukan-surat]").forEach(b => b.addEventListener("click", () => { formError=""; setScreen(suratForm(b.dataset.ajukanSurat)); attachEvents(); }));
   q("#btnAjukanSurat") && q("#btnAjukanSurat").addEventListener("click", submitSurat);
+  q("#btnCariSubjek") && q("#btnCariSubjek").addEventListener("click", cariSubjekSurat);
   qa("[data-proses-surat]").forEach(b => b.addEventListener("click", () => prosesSurat(b.dataset.prosesSurat, "Diproses")));
   qa("[data-terbit-surat]").forEach(b => b.addEventListener("click", () => prosesSurat(b.dataset.terbitSurat, null, true)));
   qa("[data-cetak-surat]").forEach(b => b.addEventListener("click", () => cetakSurat(b.dataset.cetakSurat)));
@@ -2767,6 +2852,7 @@ function userForm() {
         <option value="ketua">Ketua RT</option><option value="sekretaris">Sekretaris RT</option>
         <option value="bendahara">Bendahara RT</option><option value="kt_ketua">Ketua Karang Taruna</option>
         <option value="kt_bendahara">Bendahara Karang Taruna</option><option value="kt_petugas">Petugas Jimpitan</option>
+        <option value="surveyor">Petugas Survei</option>
         <option value="admin">Admin</option>
       </select></div>
     <div class="field"><label>Username</label><input id="fUsername"></div>
@@ -2838,10 +2924,34 @@ async function delPengumuman(id) {
 async function submitSurat() {
   const btn = document.getElementById("btnAjukanSurat");
   const jenis_surat = btn.dataset.jenis;
+  const cfg = SURAT_CONFIG[jenis_surat] || { subjekBisaBeda: false, extra: [] };
+  const prosesForOther = cfg.subjekBisaBeda && can.processSurat();
   const keperluan = document.getElementById("fKeperluan").value.trim();
   if (!keperluan) { formError = "Keperluan wajib diisi."; setScreen(suratForm(jenis_surat)); attachEvents(); return; }
+  const extra = {};
+  for (const f of (cfg.extra || [])) {
+    const el = document.getElementById("fExtra_" + f.key);
+    const val = el ? el.value.trim() : "";
+    if (!f.opsional && !val) { formError = f.label + " wajib diisi."; setScreen(suratForm(jenis_surat)); attachEvents(); return; }
+    extra[f.key] = val;
+  }
+  let subjek;
+  if (prosesForOther) {
+    const nama = document.getElementById("fSubjekNama").value.trim();
+    if (!nama) { formError = "Nama subjek surat wajib diisi."; setScreen(suratForm(jenis_surat)); attachEvents(); return; }
+    subjek = {
+      nik: document.getElementById("fSubjekNik").value.trim(), nama: nama,
+      ttl: document.getElementById("fSubjekTtl").value.trim(),
+      jenis_kelamin: document.getElementById("fSubjekJk").value,
+      agama: document.getElementById("fSubjekAgama").value.trim(),
+      pekerjaan: document.getElementById("fSubjekPekerjaan").value.trim(),
+      status_kawin: document.getElementById("fSubjekKawin").value.trim(),
+      alamat: document.getElementById("fSubjekAlamat").value.trim()
+    };
+  }
   btn.disabled = true; btn.textContent = "Mengirim…";
-  const r = await apiPost("addSurat", { jenis_surat, keperluan, nik_pemohon: session.nik, nama_pemohon: session.nama });
+  const r = await apiPost("addSurat", { jenis_surat, keperluan, nik_pemohon: session.nik || "", nama_pemohon: session.nama, extra, subjek });
+  btn.disabled = false; btn.textContent = "Kirim pengajuan";
   if (!r.ok) { formError = r.error; setScreen(suratForm(jenis_surat)); attachEvents(); return; }
   formError = "";
   await refreshSurat();
@@ -2862,9 +2972,58 @@ async function delSurat(id) {
   await refreshSurat();
   setScreen(screens.surat()); attachEvents();
 }
+function tglPanjang_(v, opt) {
+  if (!v) return "-";
+  const d = new Date(v);
+  if (isNaN(d)) return esc(v);
+  return d.toLocaleDateString('id-ID', opt || { day: 'numeric', month: 'long', year: 'numeric' });
+}
+function suratRowTd_(label, value) { return `<tr><td>${esc(label)}</td><td>:</td><td>${esc(value || '-')}</td></tr>`; }
+// Isi surat (paragraf pembuka + tabel identitas + isi) disusun BEDA utk tiap jenis, meniru draft resmi yang
+// biasa dipakai RT/Kelurahan — bukan satu paragraf generik untuk semua jenis seperti versi sebelumnya.
+function suratIsiHtml(s) {
+  const sub = s.subjek || {}; const ex = s.extra || {};
+  const pembuka = "Yang bertanda tangan di bawah ini, Ketua RT 011 Dukuh Tulusari, Desa Karangwaru, Kecamatan Plupuh, Kabupaten Sragen, dengan ini menerangkan bahwa:";
+  const tabelIdentitas = [
+    suratRowTd_("Nama", sub.nama), suratRowTd_("NIK", sub.nik), suratRowTd_("Tempat/Tgl Lahir", sub.ttl),
+    suratRowTd_("Jenis Kelamin", sub.jenis_kelamin), suratRowTd_("Agama", sub.agama), suratRowTd_("Pekerjaan", sub.pekerjaan),
+    suratRowTd_("Status Perkawinan", sub.status_kawin), suratRowTd_("Alamat", sub.alamat)
+  ].join("");
+  switch (s.jenis_surat) {
+    case "Surat Pengantar KTP/KK":
+      return { pembuka, tabel: tabelIdentitas, isi: `
+        <p>Nama tersebut di atas adalah benar warga kami yang berdomisili di wilayah RT 011 Dukuh Tulusari. Surat pengantar ini dibuat untuk keperluan <strong>${esc(ex.tujuan_pengantar || '-')}</strong> (${esc(s.keperluan)}) di Kantor Desa Karangwaru / Dinas Kependudukan dan Pencatatan Sipil.</p>` };
+    case "Surat Keterangan Domisili":
+      return { pembuka, tabel: tabelIdentitas, isi: `
+        <p>Nama tersebut di atas adalah benar berdomisili/bertempat tinggal di wilayah RT 011 Dukuh Tulusari sejak <strong>${esc(ex.lama_tinggal || '-')}</strong>. Surat keterangan ini dibuat untuk keperluan: <strong>${esc(s.keperluan)}</strong>.</p>` };
+    case "Surat Keterangan Tidak Mampu":
+      return { pembuka, tabel: tabelIdentitas, isi: `
+        <p>Nama tersebut di atas adalah benar warga kami dan berdasarkan pengamatan sehari-hari, yang bersangkutan/keluarganya tergolong <strong>tidak mampu secara ekonomi</strong>. Surat keterangan ini dibuat untuk keperluan <strong>${esc(ex.tujuan_sktm || '-')}</strong> (${esc(s.keperluan)}).</p>` };
+    case "Surat Pengantar Nikah":
+      return { pembuka, tabel: tabelIdentitas, isi: `
+        <p>Nama tersebut di atas adalah benar warga kami dan bermaksud melangsungkan pernikahan dengan calon pasangan bernama <strong>${esc(ex.nama_pasangan || '-')}</strong>${ex.alamat_pasangan ? (', beralamat di ' + esc(ex.alamat_pasangan)) : ''}${ex.rencana_tanggal ? (', dengan rencana akad/pernikahan pada ' + tglPanjang_(ex.rencana_tanggal)) : ''}.</p>
+        <p>Surat pengantar ini dibuat untuk diajukan ke <strong>${esc(ex.tujuan_instansi || '-')}</strong> guna melengkapi persyaratan administrasi pernikahan.</p>` };
+    case "Surat Keterangan Kematian":
+      return { pembuka, tabel: tabelIdentitas, isi: `
+        <p>Nama tersebut di atas adalah benar warga kami, yang menurut keterangan pelapor, telah <strong>meninggal dunia</strong> pada:</p>
+        <table class="data">
+          ${suratRowTd_("Hari/Tanggal Meninggal", tglPanjang_(ex.tanggal_meninggal, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }))}
+          ${suratRowTd_("Tempat Meninggal", ex.tempat_meninggal)}
+          ${suratRowTd_("Sebab Meninggal", ex.sebab_meninggal)}
+        </table>
+        <p>Keterangan ini dibuat berdasarkan laporan dari <strong>${esc(ex.nama_pelapor || '-')}</strong> (${esc(ex.hubungan_pelapor || '-')} dari almarhum/almarhumah). Surat keterangan kematian ini dibuat untuk keperluan: <strong>${esc(s.keperluan)}</strong>.</p>` };
+    case "Surat Pengantar Izin":
+      return { pembuka, tabel: tabelIdentitas, isi: `
+        <p>Nama tersebut di atas adalah benar warga kami dan bermaksud mengajukan <strong>${esc(ex.jenis_izin || '-')}</strong> untuk kegiatan/usaha <strong>${esc(ex.nama_kegiatan || '-')}</strong>${ex.lokasi ? (', berlokasi di ' + esc(ex.lokasi)) : ''}${ex.waktu_pelaksanaan ? (', dilaksanakan pada ' + esc(ex.waktu_pelaksanaan)) : ''}.</p>
+        <p>Pihak RT tidak berkeberatan dan merekomendasikan pengajuan ini untuk diproses lebih lanjut ke instansi/pihak berwenang terkait. Surat ini bersifat pengantar — izin resmi tetap diterbitkan oleh instansi berwenang. Keperluan: <strong>${esc(s.keperluan)}</strong>.</p>` };
+    default:
+      return { pembuka, tabel: tabelIdentitas, isi: `<p>Adalah benar warga Dukuh Tulusari RT 011. Surat ini diterbitkan untuk keperluan: <strong>${esc(s.keperluan)}</strong>.</p>` };
+  }
+}
 function cetakSurat(id) {
   const s = cache.surat.find(x => x.id === id);
   if (!s) return;
+  const body = suratIsiHtml(s);
   const w = window.open("", "_blank");
   if (!w) { alert("Popup diblokir browser. Izinkan popup untuk mencetak surat."); return; }
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${esc(s.nomor_surat||s.jenis_surat)}</title>
@@ -2876,8 +3035,8 @@ function cetakSurat(id) {
       .nomor{text-align:center; margin-bottom:20px;}
       p{line-height:1.7; text-align:justify;}
       table.data{margin:14px 0 20px; border-collapse:collapse;}
-      table.data td{padding:2px 8px;}
-      .ttd{margin-top:60px; text-align:right;}
+      table.data td{padding:2px 8px; vertical-align:top;}
+      .ttd{margin-top:50px; text-align:right;}
       .ttd .space{height:70px;}
       @media print{ .noprint{display:none;} }
     </style></head><body>
@@ -2888,15 +3047,12 @@ function cetakSurat(id) {
     </div>
     <div class="judul">${esc(s.jenis_surat.toUpperCase())}</div>
     <div class="nomor">Nomor: ${esc(s.nomor_surat||'-')}</div>
-    <p>Yang bertanda tangan di bawah ini, Ketua RT 011 Dukuh Tulusari, Desa Karangwaru, Kecamatan Plupuh, Kabupaten Sragen, menerangkan bahwa:</p>
-    <table class="data">
-      <tr><td>Nama</td><td>:</td><td>${esc(s.nama_pemohon)}</td></tr>
-      <tr><td>NIK</td><td>:</td><td>${esc(s.nik_pemohon)}</td></tr>
-    </table>
-    <p>Adalah benar warga Dukuh Tulusari RT 011. Surat ini diterbitkan untuk keperluan: <strong>${esc(s.keperluan)}</strong>.</p>
-    <p>Demikian surat ini dibuat untuk dipergunakan sebagaimana mestinya.</p>
+    <p>${body.pembuka}</p>
+    <table class="data">${body.tabel}</table>
+    ${body.isi}
+    <p>Demikian surat ini dibuat dengan sebenarnya untuk dapat dipergunakan sebagaimana mestinya.</p>
     <div class="ttd">
-      <div>Tulusari, ${esc(s.tanggal_terbit ? new Date(s.tanggal_terbit).toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'}) : '')}</div>
+      <div>Tulusari, ${tglPanjang_(s.tanggal_terbit)}</div>
       <div>Ketua RT 011</div>
       <div class="space"></div>
       <div>(.............................)</div>
