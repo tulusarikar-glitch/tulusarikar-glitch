@@ -1989,7 +1989,7 @@ function suratForm(jenisSurat) {
     <div class="field"><label>Agama</label><input id="fSubjekAgama"></div>
     <div class="field"><label>Pekerjaan</label><input id="fSubjekPekerjaan"></div>
     <div class="field"><label>Status perkawinan</label><input id="fSubjekKawin" placeholder="Belum kawin / Kawin / Cerai Hidup / Cerai Mati"></div>
-    <div class="field"><label>Alamat</label><input id="fSubjekAlamat" value="Dukuh Tulusari RT 011"></div>
+    <div class="field"><label>Alamat</label><input id="fSubjekAlamat" value="Dukuh Tulusari RT 011, Desa Karangwaru"></div>
     ` : ""}
     <h3 class="sub-title" style="font-size:15px; margin-top:16px">Detail Surat</h3>
     ${(cfg.extra || []).map(f => suratExtraFieldHtml(f)).join("")}
@@ -2011,7 +2011,7 @@ async function cariSubjekSurat() {
   document.getElementById("fSubjekAgama").value = d.agama || "";
   document.getElementById("fSubjekPekerjaan").value = d.pekerjaan || "";
   document.getElementById("fSubjekKawin").value = d.status_kawin || "";
-  document.getElementById("fSubjekAlamat").value = d.alamat || "Dukuh Tulusari RT 011";
+  document.getElementById("fSubjekAlamat").value = d.alamat || "Dukuh Tulusari RT 011, Desa Karangwaru";
 }
 
 /* ====================== FORM: Buat Pengaduan ====================== */
